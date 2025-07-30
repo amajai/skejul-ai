@@ -1,112 +1,149 @@
-from langchain.chat_models import init_chat_model
-from langgraph.graph import StateGraph, START, END
-from langgraph.types import Command
+import json
 from dotenv import load_dotenv
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import List, Dict, Optional, Set, Tuple, Union, Literal
-from datetime import time, datetime
-from enum import Enum
+from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage
-from pprint import pprint
-import json
+from langgraph.graph import StateGraph, START, END
+from langchain_groq import ChatGroq
+
+# Local imports
+from models import TimeTableState, TimetableData
+
+from prompts import (
+    GET_TIMETABLE_SYSTEM_PROMPT,
+    GENERATE_TIMETABLE_PROMPT,
+    USER_PROMPT
+)
+
+from utils import remove_markdown_code_blocks
 
 load_dotenv()
 
-DayOfWeek = Literal["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-PeriodType = Literal["class", "break", "prayer", "activity", "lunch", "assembly", "other"]
-
-class SubjectDefinition(BaseModel):
-    name: str = Field(None, description="Name of the subject, e.g., Mathematics")
-    teacher: str = Field(None, description="Name of the teacher assigned to this subject")
-    slots_per_week: int = Field(None, description="How many periods per week for this subject")
-
-
-class ClassGroup(BaseModel):
-    name: str = Field(None, description="Name of the class group, e.g., 'JSS1 Red'")
-    subjects: Optional[List[SubjectDefinition]] = Field(None, description="Subjects and their weekly slots for this class group")
-
-
-class TimePeriod(BaseModel):
-    type: Optional[PeriodType] = Field(
-        None, description="Type of period: class, break, prayer, activity, etc."
-    )
-    start: str = Field(None, description="Start time in HH:MM format")
-    end: str = Field(None, description="End time in HH:MM format")
-
-
-class SchoolData(BaseModel):
-    days: Optional[List[DayOfWeek]] = Field(None, description="List of school days")
-    start_time: Optional[str] = Field(None, description="School start time (e.g., '7:20 AM', '07:20')")
-    end_time: Optional[str] = Field(None, description="School end time (e.g., '3:50 PM', '15:50')")
-    periods: Optional[List[TimePeriod]] = Field(None, description="Each subject period with start and end time")
-    class_groups: Optional[List[ClassGroup]] = Field(
-        None,
-        description="List of classes/grades (E.g., ['Primary 1', 'Primary 2', 'SS1A'])"
-        " with their subjects, teachers, and slot allocations"
-    )
-
-
-# LLM setup
-llm = init_chat_model(
-    model="qwen/qwen3-32b",
-    model_provider="groq", 
+# Initialize language model
+llm_gemini = init_chat_model(
+    model="gemini-2.5-flash",
+    model_provider="google_genai", 
     temperature=0
 )
 
-structured_llm = llm.with_structured_output(SchoolData)
+llm_kimi_k2 = ChatGroq(
+    model="moonshotai/kimi-k2-instruct",
+    temperature=0.1,
+    max_tokens=16000
+)
 
-# System + User prompt
-response: SchoolData = structured_llm.invoke([
-    SystemMessage(content="""
-        You are an assistant that extracts structured data to help generate a school timetable.
 
-        You must return the following fields as structured output (in JSON-compatible format):
-        - school days (e.g., Monday to Friday)
-        - school start and end time
-        - named periods (e.g., assembly, breaks, activities) with accurate start/end times
-        - class groups (e.g., Primary 1, JSS1), each with subjects, slots per week, and assigned teachers
-        - optional constraints (like max periods per day, no subject clash, or fixed teacher load)
+structured_llm = llm_gemini.with_structured_output(TimetableData) 
 
-        **Rules:**
-        - Do NOT assume anything that is not mentioned.
-        - Use exact times if provided, and generate named periods accordingly.
-        - If class period duration is implied (e.g. "classes are 40 minutes"), use that to auto-generate class blocks between breaks.
-        - If teacher workload, preferences, or constraints are mentioned, extract and include them in the `constraints` field.
-        - Use 12-hour format (e.g., "07:30", "04:00 PM").
-
-        Leave any field `null` if the information is missing.
-
-        Respond only in structured format.
-        """),
-    HumanMessage(content="""
-        The school runs Monday to Friday, from 7:00 AM to 5:00 PM.
-
-        - Assembly is from 7:00 AM to 8:20 AM
-        - Breaks are:
-            - 9:40 AM (20 mins)
-            - 11:20 AM (15 mins)
-            - 12:55 PM (1 hour 5 mins)
-        - Afternoon activity is from 4:00 PM to 5:00 PM
-        - Teaching periods are 40 minutes each between these breaks.
-
-        Class Groups:
-        - Primary 1:
-            - Math (5x/week) - Teacher: Mr. A
-            - English (5x/week) - Teacher: Mrs. B
-            - Science (2x/week) - Teacher: Mr. C
-        - JSS1:
-            - Math (4x/week) - Teacher: Mr. A
-            - English (3x/week) - Teacher: Mrs. B
-            - Science (1x/week) - Teacher: Mr. C
-
-        Constraints:
-        - No subject should clash (a teacher or student cannot be in two places at once)
-        - A teacher should not exceed 4 periods per day
-        - Mr. A prefers to teach in the morning (before 12:00 PM)
-        """)
+# WORKFLOW FUNCTIONS
+def get_timetable_data(state: TimeTableState) -> TimeTableState:
+    """Extract structured timetable data from user input."""
+    print("Extracting data into structured table...")
+    structured_llm = llm_gemini.with_structured_output(TimetableData)
+    res: TimetableData = structured_llm.invoke([
+        SystemMessage(content=GET_TIMETABLE_SYSTEM_PROMPT),
+        HumanMessage(content=state["input"])
     ])
+    print("✅ Done extracting data!")
 
-# print(response)
-json_str = json.dumps(response.model_dump(), indent=2)
-print(json_str)
+    state["timetable_data"] = res.model_dump()
+    return state
+
+
+def validate_timetable_data(state: TimeTableState) -> TimeTableState:
+    """Validate that required timetable data is present."""
+    missing = []
+    data = state["timetable_data"]
+
+    if not data:
+        state['validated'] = False
+        state['validation_errors'] = ["Missing timetable data entirely"]
+        return state
+
+    if not data['days']:
+        missing.append("school days")
+    if not data['start_time'] or not data['end_time']:
+        missing.append("school start/end time")
+    if not data['periods']:
+        missing.append("named periods (e.g., breaks, assembly)")
+    if not data['class_groups']:
+        missing.append("class groups")
+
+    state['validated'] = len(missing) == 0
+    state['validation_errors'] = missing if missing else None
+    return state
+
+
+def route_on_validation(state: TimeTableState) -> str:
+    """Route workflow based on validation results."""
+    print("Validating the date...")
+
+    if not state["validated"]:
+        print('entering invalid')
+        return "invalid"
+    print("✅ Data valid!")
+    
+    return "valid"
+
+
+def invalid(state: TimeTableState):
+    """Handle invalid state - display missing data."""
+    print("❌ Data not valid!")
+
+    print("Invalid state encountered!")
+    print("Missing:", state['validation_errors'])
+    return state
+
+
+def abort(state: TimeTableState):
+    """Abort workflow after too many attempts."""
+    print("Too many attempts. Aborting.")
+    return state
+
+
+def generate_timetable(state: TimeTableState):
+    """Generate timetables for all the class group available"""
+    print("Generating timetables...")
+
+    result = llm_kimi_k2.invoke([
+        SystemMessage(content=GENERATE_TIMETABLE_PROMPT),
+        HumanMessage(content='{}'.format(state['timetable_data']))
+    ])
+    print("✅ Done generating timetables!")
+    state['class_timetables'] = json.loads(remove_markdown_code_blocks(result.content))
+    return state
+
+
+# WORKFLOW SETUP
+workflow = StateGraph(TimeTableState)
+
+# Add nodes
+workflow.add_node('get_timetable_data', get_timetable_data)
+workflow.add_node('validate_timetable_data', validate_timetable_data)
+workflow.add_node('invalid', invalid)
+workflow.add_node('generate_timetable', generate_timetable)
+
+# Add edges
+workflow.add_edge(START, 'get_timetable_data')
+workflow.add_edge('get_timetable_data', 'validate_timetable_data')
+workflow.add_conditional_edges(
+    'validate_timetable_data',
+    route_on_validation,
+    {
+        "valid": 'generate_timetable',
+        "invalid": "invalid"
+    }
+)
+workflow.add_edge('generate_timetable', END)
+
+
+# Compile workflow
+graph = workflow.compile()
+
+if __name__ == "__main__":
+    # Execute workflow
+    result = graph.invoke({"input": USER_PROMPT})
+    
+    # Output results
+    print(result['class_timetables'])
+    
