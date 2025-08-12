@@ -42,7 +42,7 @@ class TimetableData(BaseModel):
     periods: Optional[List[TimePeriod]] = Field(None, description="Each subject period with start and end time")
     class_groups: Optional[List[ClassGroup]] = Field(
         None,
-        description="List of classes/grades (E.g., ['Primary 1', 'Primary 2', 'SS1A'])"
+        description="List of class_groups (E.g., ['Primary 1', 'Primary 2', 'SS1A'])"
         " with their subjects, teachers, and slot allocations"
     )
 
@@ -56,3 +56,7 @@ class TimeTableState(TypedDict):
     attempt: int
     validation_errors: list[str]
     validated: bool
+    # Fields for sequential processing
+    teacher_availability: dict[str, list[str]]  # Teacher -> ["Mon 8:00-8:40", "Tue 9:00-9:40"]
+    current_grade_index: int  # Track which class_group we're processing
+    all_grades: list[str]  # List of all class_groups to process
