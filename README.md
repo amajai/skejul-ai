@@ -1,15 +1,18 @@
 # Skejul AI - School Timetable Generator
 
-An intelligent school timetable generator that uses AI to automatically create optimized class schedules based on natural language input. The system extracts structured data from user requirements and generates comprehensive timetables for classes and teachers.
+An intelligent school timetable generator that uses AI to automatically create optimized class schedules based on natural language input. The system extracts structured data from user requirements and generates comprehensive timetables for class groups sequentially with teacher availability tracking.
 
 ## Features
 
 - **Natural Language Processing**: Input timetable requirements in plain English
 - **Intelligent Data Extraction**: Automatically extracts school days, periods, subjects, teachers, and constraints
-- **Multi-Model AI Support**: Uses Google Gemini and Moonshot AI for optimal performance
+- **Flexible LLM Configuration**: Configure any LLM provider via environment variables (.env file)
+- **Sequential Processing**: Generates timetables one class group at a time to prevent teacher conflicts
+- **Teacher Availability Tracking**: Prevents double-booking teachers across class groups
 - **Structured Validation**: Validates extracted data before timetable generation
 - **Flexible Constraints**: Handles teacher preferences, workload limits, and scheduling constraints
 - **JSON Output**: Generates structured timetables in JSON format for easy integration
+- **Workflow Visualization**: Generate Mermaid diagrams to visualize the workflow
 
 ## Usage
 
@@ -30,7 +33,7 @@ from skejul_ai import graph
 
 result = graph.invoke({
     "input": """
-    Generate a timetable for JSS 1 (Mon-Fri, 7:00 AM-5:00 PM).
+    Generate a timetable for JSS 1, JSS 2, Primary 5 (Mon-Fri, 7:00 AM-5:00 PM).
     
     Schedule:
     - Assembly: 7:00-8:20 AM
@@ -41,12 +44,28 @@ result = graph.invoke({
     Teachers: Mr. A (English), Mr. B (Math), Mrs. C (Science)
     
     Constraints:
-    - No teacher overlap
+    - No teacher overlap across class groups
     - Max 4 periods per teacher per day
     """
 })
 
 print(result['class_timetables'])
+```
+
+### View Workflow Diagram
+
+Generate a Mermaid diagram to visualize the workflow:
+
+```python
+from skejul_ai import graph
+
+# Print workflow diagram
+print(graph.get_graph().draw_mermaid())
+
+# Print horizontal workflow diagram
+mermaid_code = graph.get_graph().draw_mermaid()
+horizontal_mermaid_code = mermaid_code.replace("graph TD","graph LR")
+print(horizontal_mermaid_code)
 ```
 
 ## Input Format
@@ -98,43 +117,46 @@ The system generates structured JSON timetables:
 
 ## Workflow
 
-The system uses a LangGraph workflow with the following steps:
+The system uses a LangGraph workflow with sequential class group processing:
 
-1. **Data Extraction**: Extracts structured data from natural language input
+1. **Data Extraction**: Extracts structured data from natural language input using structured LLM
 2. **Validation**: Validates that all required information is present
-3. **Timetable Generation**: Creates optimized schedules using AI
-4. **Output**: Returns formatted JSON timetables
+3. **Sequential Processing Initialization**: Sets up processing for multiple class groups
+4. **For Each Class Group**:
+   - **Generate Single Class Group**: Creates timetable for current class group only
+   - **Update Teacher Availability**: Tracks when teachers are busy from previous class groups
+   - **Increment Index**: Moves to next class group
+5. **Output**: Returns formatted JSON timetables for all class groups
 
-## Models Used
-
-- **Google Gemini 2.5 Flash**: For structured data extraction
-- **Moonshot AI Kimi K2**: For timetable generation with complex reasoning
+This sequential approach ensures no teacher conflicts across different class groups.
 
 ## Configuration
 
-### AI Models
-You can configure different models in `skejul-ai.py`:
+### LLM Models
+Configure AI models flexibly via `.env` file:
 
-```python
-# Primary model for data extraction
-llm_gemini = init_chat_model(
-    model="gemini-2.5-flash",
-    model_provider="google_genai", 
-    temperature=0
-)
+```env
+# Structured data extraction LLM
+STRUCTURED_LLM_PROVIDER=google_genai
+STRUCTURED_LLM_MODEL=gemini-2.5-flash
+STRUCTURED_LLM_TEMPERATURE=0
 
-# Model for timetable generation
-llm_kimi_k2 = ChatGroq(
-    model="moonshotai/kimi-k2-instruct",
-    temperature=0.1,
-    max_tokens=16000
-)
+# Timetable generation LLM  
+LLM_PROVIDER=groq
+LLM_MODEL=moonshotai/kimi-k2-instruct
+LLM_TEMPERATURE=0.1
 ```
+
+Supported providers:
+- `google_genai`: Google Gemini models
+- `groq`: Groq models including Moonshot AI
+- `openai`: OpenAI models (via LangChain)
+- Any LangChain-compatible provider
 
 ### Prompts
 Customize the AI prompts in `prompts.py`:
-- `GET_TIMETABLE_SYSTEM_PROMPT`: For data extraction
-- `GENERATE_TIMETABLE_PROMPT`: For timetable generation
+- `GET_TIMETABLE_SYSTEM_PROMPT`: For structured data extraction
+- `GENERATE_SINGLE_GRADE_PROMPT`: For single class group timetable generation
 
 ## Data Models
 
@@ -148,10 +170,11 @@ The system uses Pydantic models for type safety:
 ## Error Handling
 
 The system includes validation for:
-- Missing required data (school days, periods, classes)
+- Missing required data (school days, periods, class groups)
 - Invalid time formats
-- Teacher scheduling conflicts
+- Teacher scheduling conflicts across class groups
 - Incomplete subject-teacher assignments
+- Sequential processing ensures teacher availability tracking
 
 ## License
 
@@ -173,9 +196,14 @@ For issues and questions:
 
 ## Roadmap
 
+- [x] Sequential class group processing
+- [x] Teacher availability tracking
+- [x] Flexible LLM configuration via .env
+- [x] Workflow visualization with Mermaid
+- [ ] Human-in-the-loop review system
 - [ ] Web interface for easier input
 - [ ] Teacher timetable generation
-- [ ] Conflict resolution suggestions
+- [ ] Conflict resolution suggestions  
 - [ ] Export to Excel/PDF formats
 - [ ] Multi-language support
 - [ ] Advanced constraint handling
