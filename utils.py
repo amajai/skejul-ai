@@ -2,6 +2,10 @@ import sys
 import time
 import re
 
+def generate_mermaid_diagram(graph):
+    """Generate horizontal Mermaid diagram for the workflow"""
+    print(graph.get_graph().draw_mermaid())
+
 def remove_markdown_code_blocks(text: str) -> str:
     # Removes triple backtick fences (e.g., ```json ... ```)
     return re.sub(r"```(?:json|python)?\s*([\s\S]*?)\s*```", r"\1", text).strip()

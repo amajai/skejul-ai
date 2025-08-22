@@ -1,6 +1,10 @@
 # Skejul AI - School Timetable Generator
 
+![Skejul AI](./resources/skejul-ai.png)
+
 An intelligent school timetable generator that uses AI to automatically create optimized class schedules based on natural language input. The system extracts structured data from user requirements and generates comprehensive timetables for class groups sequentially with teacher availability tracking.
+
+![Workflow](./resources/workflow.png)
 
 ## Features
 
@@ -10,6 +14,9 @@ An intelligent school timetable generator that uses AI to automatically create o
 - **Sequential Processing**: Generates timetables one class group at a time to prevent teacher conflicts
 - **Teacher Availability Tracking**: Prevents double-booking teachers across class groups
 - **Structured Validation**: Validates extracted data before timetable generation
+- **Beautiful Terminal UI**: Enhanced user experience with Rich library for colorful output
+- **DataFrame Export**: Automatic conversion to pandas DataFrames for analysis
+- **Multi-Format Output**: Generate PNG images, CSV files, and Excel spreadsheets
 - **Flexible Constraints**: Handles teacher preferences, workload limits, and scheduling constraints
 - **JSON Output**: Generates structured timetables in JSON format for easy integration
 - **Workflow Visualization**: Generate Mermaid diagrams to visualize the workflow
@@ -21,7 +28,7 @@ An intelligent school timetable generator that uses AI to automatically create o
 Run the script with a sample prompt:
 
 ```bash
-python skejul-ai.py
+python main.py
 ```
 
 ### Custom Input
@@ -29,7 +36,7 @@ python skejul-ai.py
 Modify the `USER_PROMPT` in `prompts.py` or pass your requirements:
 
 ```python
-from skejul_ai import graph
+from main import graph
 
 result = graph.invoke({
     "input": """
@@ -49,23 +56,18 @@ result = graph.invoke({
     """
 })
 
+# Access different outputs
+print("JSON Timetables:")
 print(result['class_timetables'])
-```
 
-### View Workflow Diagram
+print("\nDataFrame Format:")
+for class_name, df in result['class_timetables_df'].items():
+    print(f"\n{class_name}:")
+    print(df.head())
 
-Generate a Mermaid diagram to visualize the workflow:
-
-```python
-from skejul_ai import graph
-
-# Print workflow diagram
-print(graph.get_graph().draw_mermaid())
-
-# Print horizontal workflow diagram
-mermaid_code = graph.get_graph().draw_mermaid()
-horizontal_mermaid_code = mermaid_code.replace("graph TD","graph LR")
-print(horizontal_mermaid_code)
+print("\nGenerated Files:")
+for file_path in result['generated_files']:
+    print(f"- {file_path}")
 ```
 
 ## Input Format
@@ -87,7 +89,10 @@ The system accepts natural language input describing:
 
 ## Output Format
 
-The system generates structured JSON timetables:
+The system generates multiple output formats:
+
+### 1. JSON Timetables
+Structured JSON format for programmatic use:
 
 ```json
 {
@@ -115,20 +120,42 @@ The system generates structured JSON timetables:
 }
 ```
 
+### 3. Generated Files
+
+## Sample Timetables
+
+Here are a couple of sample timetable images created by the project. These demonstrate the PNG output format and the visual style used for generated timetables.
+
+![JSS 1 Timetable](./generated_timetables/JSS_1_timetable.png)
+
+_*JSS 1 sample timetable (auto-generated and saved to `generated_timetables/`).*_
+
+![SS3 Colored Timetable](./timetable%20samples/SS3_colored.png)
+
+_*Example colored timetable from the `timetable samples/` folder.*
+Automatic generation of multiple file formats in the `generated_timetables/` directory:
+- **PNG Images**: Visual timetable representations (e.g., `JSS_1_timetable.png`)
+- **CSV Files**: Comma-separated values for spreadsheet import (e.g., `JSS_1_timetable.csv`)
+- **Excel Files**: Native Excel format with proper formatting (e.g., `JSS_1_timetable.xlsx`)
+
+All files are automatically generated and saved with safe filenames.
+
 ## Workflow
 
 The system uses a LangGraph workflow with sequential class group processing:
 
 1. **Data Extraction**: Extracts structured data from natural language input using structured LLM
-2. **Validation**: Validates that all required information is present
+2. **Validation**: Validates that all required information is present with visual status display
 3. **Sequential Processing Initialization**: Sets up processing for multiple class groups
 4. **For Each Class Group**:
    - **Generate Single Class Group**: Creates timetable for current class group only
    - **Update Teacher Availability**: Tracks when teachers are busy from previous class groups
    - **Increment Index**: Moves to next class group
-5. **Output**: Returns formatted JSON timetables for all class groups
+5. **DataFrame Conversion**: Converts all timetables to structured pandas DataFrames
+6. **File Generation**: Automatically generates PNG, CSV, and Excel files
+7. **Output**: Returns JSON timetables, DataFrames, and file paths
 
-This sequential approach ensures no teacher conflicts across different class groups.
+This sequential approach ensures no teacher conflicts across different class groups while providing multiple output formats for different use cases.
 
 ## Configuration
 
@@ -189,21 +216,43 @@ For issues and questions:
 
 ## Example Use Cases
 
-- **Primary Schools**: Generate timetables for elementary classes
-- **Secondary Schools**: Handle complex subject-teacher assignments
-- **Private Schools**: Accommodate special schedules and constraints
-- **Tutoring Centers**: Organize multiple classes and instructors
+- **Primary Schools**: Generate visual timetables for elementary classes with simple subjects
+- **Secondary Schools**: Handle complex subject-teacher assignments with constraint tracking
+- **Private Schools**: Accommodate special schedules, assembly times, and unique constraints
+- **Tutoring Centers**: Organize multiple classes and instructors across different time slots
+- **International Schools**: Manage diverse curriculum requirements and teacher availability
+- **Homeschool Groups**: Create structured schedules for co-op classes and shared resources
 
-## Roadmap
+## Dependencies
 
-- [x] Sequential class group processing
-- [x] Teacher availability tracking
-- [x] Flexible LLM configuration via .env
-- [x] Workflow visualization with Mermaid
-- [ ] Human-in-the-loop review system
-- [ ] Web interface for easier input
-- [ ] Teacher timetable generation
-- [ ] Conflict resolution suggestions  
-- [ ] Export to Excel/PDF formats
-- [ ] Multi-language support
-- [ ] Advanced constraint handling
+Key dependencies include:
+- **LangChain & LangGraph**: AI workflow orchestration
+- **Pandas**: Data manipulation and DataFrame operations
+- **Rich**: Beautiful terminal UI with colors, tables, and progress bars
+- **Matplotlib**: Timetable image generation
+- **Pydantic**: Data validation and type safety
+- **OpenPyXL**: Excel file generation
+- **Python-dotenv**: Environment variable management
+
+Install all dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+## File Structure
+
+```
+skejul-ai/
+├── main.py                    # Main application entry point
+├── models.py                  # Pydantic data models
+├── prompts.py                 # AI prompts and configurations
+├── utils.py                   # Utility functions
+├── niceterminalui.py          # Terminal UI components
+├── create_timetable_image.py  # Image generation functions
+├── resources/                 # Project images and assets
+│   ├── skejul-ai.png         # Project logo
+│   └── workflow.png          # Workflow diagram
+├── generated_timetables/      # Output directory (auto-created)
+├── requirements.txt           # Python dependencies
+└── README.md                  # This file
+```

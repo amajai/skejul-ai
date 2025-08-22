@@ -53,6 +53,7 @@ class TimeTableState(TypedDict):
     input: str
     timetable_data: TimetableData
     class_timetables: dict
+    class_timetables_df: dict
     attempt: int
     validation_errors: list[str]
     validated: bool
