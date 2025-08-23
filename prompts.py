@@ -1,3 +1,119 @@
+# =============================================================================
+# USER SCENARIO PROMPTS
+# =============================================================================
+
+USER_PROMPT = """
+Generate a timetable for JSS 3, SS1, and SS2 (Mon-Fri, 7:20 AM-3:50 PM).
+
+Schedule Structure
+
+Assembly: 7:20-8:00 AM
+Break 1: 10:20-10:30 AM
+Break 2: 12:20-12:50 PM
+Each period: 40 minutes
+
+Subjects
+
+JSS 3:
+Mathematics, English, Basic Science, Arabic, Literature (LIT), Civic Education, Social Studies, ICT, Physical Health Education (P.H.E), Basic Technology (B. TECH)
+
+SS1:
+Mathematics, English, Biology, Chemistry, Physics, Literature, Government, Civic Education, ICT, Arabic, P.H.E, Economics, Social Studies
+
+SS2:
+Mathematics, English, Biology, Chemistry, Physics, Literature, Government, Civic Education, ICT, Arabic, P.H.E, Economics, Geography
+
+Teachers
+
+Mrs. A - English (teaches JSS 3, SS1, SS2; prefers morning periods)
+Mr. B - Mathematics (teaches all 3 classes; flexible)
+Mrs. C - Basic Science/Biology (teaches JSS 3 + SS1 + SS2; must avoid overlaps)
+Mr. D - Arabic (teaches all 3; prefers after morning break)
+Mr. F - ICT (teaches all 3; max 2 classes/day)
+Mrs. G - P.H.E (teaches all 3; prefers afternoons)
+Mr. H - Literature (teaches JSS 3, SS1 & SS2; limited to 3 lessons/day)
+Mrs. I - Basic Technology (JSS 3 only)
+Mr. J - Civic Education (teaches all 3 levels; avoid back-to-back load)
+Mrs. K - Economics/Geography (teaches SS1 & SS2 only)
+Mr. L - Chemistry/Physics (teaches SS1 & SS2 only)
+Mr. M - Government/Social Studies (teaches JSS 3, SS1, SS2; spread evenly)
+
+Constraints
+
+No teacher or class overlap during the same time slot.
+Teacher preferences and max load limits must be respected.
+Core subjects (English, Math, Science, Arabic) appear ≥4x per week for each class.
+Literature, Civic, and Social Studies should not all appear on the same day for one class.
+Advanced sciences (Physics, Chemistry, Biology) must be balanced across SS1 & SS2.
+Assembly every day before classes.
+"""
+
+USER_PROMPT_2 = """
+Generate a timetable for Primary 1, Primary 3, and JSS 1 (Mon-Fri, 7:00 AM-5:00 PM).
+
+Schedule:
+
+Assembly: 7:00-8:00 AM
+Breaks: 9:20-9:40 AM, 11:00-11:15 AM
+Lunch: 1:00-2:00 PM
+Afternoon Session (Clubs / Story / Prep / Sports): 4:00-5:00 PM
+Each period: 40 minutes
+
+Subjects:
+
+Primary 1 & Primary 3:
+English, Math, Science, Social Studies, Religious Ed, Art, Music, Health Ed, Life Skills, P.E., Story Time, Reading
+
+JSS 1:
+English, Math, Basic Science, Social Studies, Religious Ed, Agric, Business Studies, Civic Ed, Basic Tech, Life Skills, Computer Studies, P.E., Optional Lang (French or Local Lang)
+
+Teachers (shared across classes):
+
+Mrs. A - English (teaches Primary 1, Primary 3, and JSS 1, prefers morning)
+
+Mr. B - Math (teaches all 3 classes, flexible schedule)
+
+Mrs. C - Science (Primary 1 & 3), Basic Science (JSS 1)
+
+Mr. D - Social Studies (Primary 3 & JSS 1)
+
+Mrs. E - Religious Ed (all classes)
+
+Mr. F - Art & Music (Primary 1 & 3)
+
+Mrs. G - Health Ed & Life Skills (Primary 1, 3, and JSS 1)
+
+Mr. H - P.E. (all classes)
+
+Mrs. I - Reading & Story Time (Primary 1 & 3)
+
+Mr. J - Business Studies (JSS 1)
+
+Mrs. K - Basic Tech & Agric (JSS 1)
+
+Mr. L - Civic Ed (JSS 1)
+
+Mrs. M - Computer Studies (JSS 1)
+
+Mr. N - French / Optional Lang (JSS 1 only)
+
+Constraints:
+
+No teacher or class overlap
+
+Teacher preferences must be respected (e.g., Mrs. A prefers morning periods only)
+
+Core subjects (English, Math, Science) appear at least 3x/week
+
+Optional/Creative subjects like Art, Music, Story Time appear -2x/week
+
+Afternoon sessions are for non-core activities (clubs, revision, sports)
+"""
+
+# =============================================================================
+# SYSTEM PROMPTS
+# =============================================================================
+
 GET_TIMETABLE_SYSTEM_PROMPT = """
 You are an expert school assistant that extracts structured data to help generate a school timetable.
 
@@ -61,230 +177,6 @@ You are generating a school timetable from the given structured data.
     }
 }
 }
-"""
-OLD_USER_FAILED_PROMPT = """
-- Assembly is from 7:00 AM to 8:20 AM
-- Breaks are:
-    - 9:40 AM (20 mins)
-    - 11:20 AM (15 mins)
-    - 12:55 PM (1 hour 5 mins)
-- Afternoon activity is from 4:00 PM to 5:00 PM
-- Teaching periods are 40 minutes each between these breaks.
-
-Class Groups:
-- Primary 1:
-    - Math (5x/week) - Teacher: Mr. A
-    - English (5x/week) - Teacher: Mrs. B
-    - Science (2x/week) - Teacher: Mr. C
-- JSS1:
-    - Math (4x/week) - Teacher: Mr. A
-    - English (3x/week) - Teacher: Mrs. B
-    - Science (1x/week) - Teacher: Mr. C
-
-Constraints:
-- No subject should clash (a teacher or student cannot be in two places at once)
-- A teacher should not exceed 4 periods per day
-- Mr. A prefers to teach in the morning (before 12:00 PM)
-"""
-
-USER_PROMPT = """
-Generate a timetable for JSS 1, JSS 2, and Primary 5 (Mon-Fri, 7:20 AM-3:50 PM) following Amana Legacy Foundation Academy structure.
-
-Schedule Structure:
-- Assembly: 7:20-8:00 AM
-- Morning Break: 10:20-10:30 AM  
-- Quran Break: 11:10-11:50 AM
-- Afternoon Break: 12:20-12:50 PM
-- Lunch Break: 1:20-1:50 PM
-- Practice Session: 2:30-3:10 PM
-- Extended Activities: 3:10-3:50 PM
-
-Each period: 40 minutes
-
-Subjects:
-
-JSS 1 & JSS 2:
-Mathematics, English, Basic Science, Arabic, Literature (LIT), Religious & National Values (R.N.V), Hadith, ICT, Physical Health Education (P.H.E), Basic Technology (B. TECH), Civic Education, Tajwid, Social Studies, Computer Studies
-
-Primary 5:
-Mathematics, English, Basic Science, Arabic, Hadith, Azkar, Social Studies, Religious Education, ICT, Physical Education, Art & Craft, Life Skills, Reading
-
-Teachers (shared across classes):
-
-Mrs. A - English (teaches JSS 1, JSS 2, and Primary 5, prefers morning periods)
-Mr. B - Mathematics (teaches all 3 classes, flexible schedule)
-Mrs. C - Basic Science (all classes)
-Mr. D - Arabic (all classes, prefers after morning break)
-Mrs. E - Religious Ed/R.N.V/Hadith (all classes)
-Mr. F - ICT/Computer Studies (all classes)
-Mrs. G - P.H.E/Physical Education (all classes)
-Mr. H - Literature/Social Studies (JSS 1 & JSS 2)
-Mrs. I - Basic Technology (JSS 1 & JSS 2)
-Mr. J - Civic Education/Tajwid (JSS 1 & JSS 2)
-Mrs. K - Art & Craft/Life Skills (Primary 5)
-Mr. L - Azkar/Reading (Primary 5)
-
-Constraints:
-- No teacher or class overlap during the same time slot
-- Teacher preferences must be respected
-- Core subjects (English, Mathematics, Arabic, Basic Science) appear at least 4x/week
-- Religious subjects (Hadith, R.N.V, Tajwid, Azkar) distributed throughout the week
-- Quran break period (11:10-11:50 AM) must be maintained for Islamic studies
-- Practice sessions (2:30-3:10 PM) for mathematics competitions and spelling bee
-- Extended activities period for clubs, sports, and enrichment programs
-- Assembly period every morning before academic sessions begin
-"""
-
-USER_PROMPT_2 = """
-Generate a timetable for Primary 2 to SS2 (Mon-Fri, 7:00 AM-5:00 PM).
-
-Schedule:
-Assembly: 7:00-8:00 AM
-Breaks: 9:20-9:40 AM, 11:00-11:15 AM
-Lunch: 1:00-2:00 PM
-Afternoon Clubs / Prep / Sports: 4:00-5:00 PM
-Each period: 40 minutes
-
-Subjects (vary by level):
-
-Primary 2 - Primary 6:
-English, Math, Science, Social Studies, Religious Ed, Art, Music, Life Skills, Health Ed, P.E., Reading, Story Time
-
-JSS 1 - JSS 3:
-English, Math, Basic Science, Basic Tech, Social Studies, Agric, Civic Ed, Religious Ed, Business Studies, French or Indigenous Lang, P.E., Life Skills, Computer Studies
-
-SS1 - SS2:
-English, Math, Civic Ed, ICT, P.E.
-
-Science: Physics, Chemistry, Biology, Further Math, Agric
-
-Art: Literature, CRS/IRS, Government, History, Languages (French, Indigenous)
-
-Commercial: Economics, Accounting, Commerce, Office Practice
-
-Teachers:
-
-Mrs. A (English - all levels)
-Mr. B (Math - all levels)
-Mrs. C (Science - Primary & JSS)
-Mr. D (Basic Tech - JSS)
-Mrs. E (Social Studies - Primary & JSS)
-Mr. F (Civic Ed - JSS & SS)
-Mrs. G (Religious Ed - all levels)
-Mr. H (Agric - JSS & SS)
-Mrs. I (Art & Music - Primary only)
-Mr. J (P.E. - all levels)
-Mr. K (Life Skills - Primary & JSS)
-Mrs. L (Computer Studies - JSS & SS)
-Mr. M (French & Langs - JSS & SS)
-Mrs. N (Physics, Chemistry - SS)
-Mr. O (Biology - SS)
-Mrs. P (Literature, Government - SS)
-Mr. Q (Economics, Commerce - SS)
-Mr. R (Business Studies - JSS)
-Mrs. S (ICT - SS)
-Mr. T (History - SS)
-Mrs. U (Accounting - SS)
-
-Constraints:
-No teacher or class overlaps allowed
-Teachers' preferences must be respected (e.g., Mrs. A prefers morning classes)
-Core subjects should occur at least 3x/week
-Language or elective/practical classes 1-2x/week
-Clubs and non-academic activities limited to last period or 4-5 PM
-
-Class groups: Primary 2, 3, 4, 5, 6, JSS 1-3, SS1, SS2
-"""
-
-USER_PROMPT_3 = """
-Generate a timetable for Primary 1, Primary 3, and JSS 1 (Mon-Fri, 7:00 AM-5:00 PM).
-
-Schedule:
-
-Assembly: 7:00-8:00 AM
-
-Breaks: 9:20-9:40 AM, 11:00-11:15 AM
-
-Lunch: 1:00-2:00 PM
-
-Afternoon Session (Clubs / Story / Prep / Sports): 4:00-5:00 PM
-
-Each period: 40 minutes
-
-Subjects:
-
-Primary 1 & Primary 3:
-English, Math, Science, Social Studies, Religious Ed, Art, Music, Health Ed, Life Skills, P.E., Story Time, Reading
-
-JSS 1:
-English, Math, Basic Science, Social Studies, Religious Ed, Agric, Business Studies, Civic Ed, Basic Tech, Life Skills, Computer Studies, P.E., Optional Lang (French or Local Lang)
-
-Teachers (shared across classes):
-
-Mrs. A - English (teaches Primary 1, Primary 3, and JSS 1, prefers morning)
-
-Mr. B - Math (teaches all 3 classes, flexible schedule)
-
-Mrs. C - Science (Primary 1 & 3), Basic Science (JSS 1)
-
-Mr. D - Social Studies (Primary 3 & JSS 1)
-
-Mrs. E - Religious Ed (all classes)
-
-Mr. F - Art & Music (Primary 1 & 3)
-
-Mrs. G - Health Ed & Life Skills (Primary 1, 3, and JSS 1)
-
-Mr. H - P.E. (all classes)
-
-Mrs. I - Reading & Story Time (Primary 1 & 3)
-
-Mr. J - Business Studies (JSS 1)
-
-Mrs. K - Basic Tech & Agric (JSS 1)
-
-Mr. L - Civic Ed (JSS 1)
-
-Mrs. M - Computer Studies (JSS 1)
-
-Mr. N - French / Optional Lang (JSS 1 only)
-
-Constraints:
-
-No teacher or class overlap
-
-Teacher preferences must be respected (e.g., Mrs. A prefers morning periods only)
-
-Core subjects (English, Math, Science) appear at least 3x/week
-
-Optional/Creative subjects like Art, Music, Story Time appear -2x/week
-
-Afternoon sessions are for non-core activities (clubs, revision, sports)
-"""
-
-USER_FAILED_PROMPT = """
-- Assembly is from 7:00 AM to 8:20 AM
-- Breaks are:
-    - 9:40 AM (20 mins)
-    - 11:20 AM (15 mins)
-    - 12:55 PM (1 hour 5 mins)
-- Afternoon activity is from 4:00 PM to 5:00 PM
-- Teaching periods are 40 minutes each between these breaks.
-
-Class Groups:
-- Primary 1:
-    - Math (5x/week) - Teacher: Mr. A
-    - English (5x/week) - Teacher: Mrs. B
-    - Science (2x/week) - Teacher: Mr. C
-- JSS1:
-    - Math (4x/week) - Teacher: Mr. A
-    - English (3x/week) - Teacher: Mrs. B
-    - Science (1x/week) - Teacher: Mr. C
-
-Constraints:
-- No subject should clash (a teacher or student cannot be in two places at once)
-- A teacher should not exceed 4 periods per day
-- Mr. A prefers to teach in the morning (before 12:00 PM)
 """
 
 GENERATE_SINGLE_GRADE_PROMPT = """

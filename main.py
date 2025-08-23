@@ -190,7 +190,6 @@ def update_teacher_availability(state: TimeTableState) -> TimeTableState:
     
     class_group_schedule = state['class_timetables'][current_class_group]
     
-    print(class_group_schedule.items())
     # Extract teacher busy times
     for day, periods in class_group_schedule.items():
         for period in periods:
@@ -393,8 +392,18 @@ if __name__ == "__main__":
     # Execute workflow
     result = graph.invoke({"input": USER_PROMPT})
     
-    # Output results with nice formatting
-    print_result_box("Generated Timetables", json.dumps(result['class_timetables'], indent=2))
+    # Output results with nice formatting - show summary instead of full timetables
+    class_names = list(result['class_timetables'].keys())
+    total_classes = len(class_names)
+    
+    summary_info = (
+        f"Classes Generated: {total_classes}\n"
+        f"Classes: {', '.join(class_names)}\n"
+        f"Files Location: generated_timetables/\n"
+        f"Status: ✅ Complete"
+    )
+    
+    print_result_box("Timetable Generation Summary", summary_info)
     
     # Display completion message
     print_completion_message("Skejul-AI", "Your Intelligent Scheduling Assistant")
